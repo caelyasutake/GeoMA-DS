@@ -1,6 +1,6 @@
 # GeoMultiAttractorDS
 
-A research implementation of **Geometric Multi-Attractor Dynamical Systems (GeoMA-DS)** for reactive robot motion planning through homotopy barriers, running on a Franka Panda 7-DOF arm in MuJoCo.
+This repository contains the code for **\textt{GeoMA-DS: Geometrically-Guided Multi-Attractor Dynamical Systems for Reactive Control}**.~~~~
 
 ---
 
@@ -45,23 +45,6 @@ All IK calls use HJCD-IK with `num_solutions=8` across 3 EE orientations, seeded
 
 ---
 
-## Results
-
-| Scenario | GeoMA-DS | DiffIK+CBF baseline |
-|----------|----------|---------------------|
-| open_reach (no obstacle) | **10/10** | 0/10 (diverges) |
-| i_barrier (I-shaped barrier) | **10/10** | 0/10 (trapped) |
-| cross_barrier (YZ-cross slot) | **10/10** | 0/10 (trapped) |
-
-```
-Scenario        Method         N    Success  Planner ms  Ctrl Hz  Min cl m   Grasp err m
-cross_barrier   geo_ma_ds      10   10/10    8.1 ± 1.6   496±22   0.035      3e-04
-i_barrier       geo_ma_ds      10   10/10    7.9 ± 4.3   968±8    0.134      4e-10
-open_reach      geo_ma_ds      10   10/10    6.2 ± 1.2   1850±13  0.000      2e-10
-```
-
----
-
 ## Installation
 
 ### Prerequisites
@@ -74,14 +57,14 @@ open_reach      geo_ma_ds      10   10/10    6.2 ± 1.2   1850±13  0.000      2
 
 ```bash
 git clone --recurse-submodules <repo-url>
-cd Multi-IK-DS
+cd GeoMA-DS
 ```
 
 ### 2. Create conda environment
 
 ```bash
-conda create -n ds-iks python=3.11
-conda activate ds-iks
+conda create -n geoma-ds python=3.11
+conda activate geoma-ds
 pip install numpy scipy matplotlib pytest
 ```
 
@@ -106,7 +89,7 @@ pip install mujoco
 ### 5. Verify
 
 ```bash
-conda activate ds-iks
+conda activate geoma-ds
 python -c "import hjcdik; print('HJCD-IK ok')"
 python -m pytest tests/unit/ -q
 ```
@@ -116,7 +99,7 @@ python -m pytest tests/unit/ -q
 ## Running Benchmarks
 
 ```bash
-conda activate ds-iks
+conda activate geoma-ds
 
 # All three scenarios, 10 trials each
 python -m benchmarks.eval_baselines --scenarios open_reach i_barrier cross_barrier --trials 10
@@ -138,7 +121,7 @@ Results are printed to stdout and saved to `outputs/summary.csv` and `outputs/su
 ## Running Tests
 
 ```bash
-conda activate ds-iks
+conda activate geoma-ds
 
 # All unit tests
 python -m pytest tests/unit/ -v
@@ -152,7 +135,7 @@ python -m pytest tests/unit/test_geo_multi_attractor_ds.py -v
 ## Project Structure
 
 ```
-Multi-IK-DS/
+GeoMA-DS/
 ├── benchmarks/
 │   └── eval_baselines.py        # Main benchmark: geo_ma_ds vs diffik_ds_cbf
 ├── external/
