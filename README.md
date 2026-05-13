@@ -1,6 +1,6 @@
 # GeoMultiAttractorDS
 
-This repository contains the code for **\textt{GeoMA-DS: Geometrically-Guided Multi-Attractor Dynamical Systems for Reactive Control}**.~~~~
+This repository contains the code for **GeoMA-DS: Geometrically-Guided Multi-Attractor Dynamical Systems for Reactive Control**.~~~~
 
 ---
 
@@ -56,7 +56,7 @@ All IK calls use HJCD-IK with `num_solutions=8` across 3 EE orientations, seeded
 ### 1. Clone with submodules
 
 ```bash
-git clone --recurse-submodules <repo-url>
+git clone --recurse-submodules https://github.com/caelyasutake/GeoMA-DS
 cd GeoMA-DS
 ```
 
@@ -140,21 +140,19 @@ GeoMA-DS/
 │   └── eval_baselines.py        # Main benchmark: geo_ma_ds vs diffik_ds_cbf
 ├── external/
 │   └── HJCD-IK/                 # Git submodule: GPU IK solver
-├── src/
-│   ├── scenarios/
-│   │   ├── scenario_builders.py # open_reach, i_barrier, cross_barrier
-│   │   └── scenario_schema.py   # ScenarioSpec, Obstacle
-│   ├── simulation/              # MuJoCo physics wrapper
-│   └── solver/
-│       ├── ds/
-│       │   ├── geo_multi_attractor_ds.py  # GeoMA-DS core
-│       │   └── factory.py                 # Build: IK→attractors, escape candidates
-│       ├── ik/
-│       │   └── hjcd_wrapper.py  # HJCD-IK Python interface
-│       └── planner/
-│           └── collision.py     # Clearance function (SDF queries)
-└── tests/
-    └── unit/                    # Unit tests for DS, IK, scenarios
+└── src/
+    ├── scenarios/
+    │   ├── scenario_builders.py # open_reach, i_barrier, cross_barrier
+    │   └── scenario_schema.py   # ScenarioSpec, Obstacle
+    ├── simulation/              # MuJoCo physics wrapper
+    └── solver/
+        ├── ds/
+        │   ├── geo_multi_attractor_ds.py  # GeoMA-DS core
+        │   └── factory.py                 # Build: IK→attractors, escape candidates
+        ├── ik/
+        │   └── hjcd_wrapper.py  # HJCD-IK Python interface
+        └── planner/
+            └── collision.py     # Clearance function (SDF queries)
 ```
 
 ---
