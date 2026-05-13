@@ -1,0 +1,5 @@
+- Add fdsva/idsva to printGRiD
+- Add fdsva/idsva to testGRiD
+- properly link up submodules
+- floating base second order
+- fix static/dynamic allocations

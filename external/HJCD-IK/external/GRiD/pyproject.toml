@@ -1,0 +1,21 @@
+[tool.black]
+line-length = 88  # Sets the maximum line length; default is 88, but you can adjust it if needed.
+target-version = ['py39']  # Specify the Python version(s) you're targeting, e.g., 'py39' for Python 3.9.
+skip-string-normalization = true  # Optional: keep existing string quotes instead of converting to double quotes
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.nox
+  | \.tox
+  | \.venv
+  | _build
+  | source
+  | buck-out
+  | build
+  | dist
+)/
+'''
+

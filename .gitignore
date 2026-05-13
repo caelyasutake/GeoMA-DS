@@ -1,0 +1,28 @@
+.worktrees/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+*.pyd
+.env
+.venv/
+venv/
+
+# Local outputs, logs, and tests
+outputs/
+mujoco/
+MUJOCO_LOG.TXT
+_tmp_*.py
+tmp_*.py
+tests/
+test_*.py
+
+# Claude
+.claude/
+CLAUDE.md
+OVERVIEW.md
+docs/

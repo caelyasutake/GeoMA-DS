@@ -1,0 +1,278 @@
+from bs4 import BeautifulSoup
+import numpy as np
+import sympy as sp
+import copy
+from .Robot import Robot
+from .Link import Link
+from .Joint import Joint, Fixed_Joint
+
+class URDFParser:
+    def __init__(self):
+        pass
+    
+    def parse(self, filename, floating_base = False, using_quaternion = True, alpha_tie_breaker = False):
+        Joint.floating_base = floating_base
+        try:
+            # parse the file
+            urdf_file = open(filename, "r")
+            self.soup = BeautifulSoup(urdf_file.read(),"xml").find("robot")
+            # set up the robot object
+            self.robot = Robot(self.soup["name"], floating_base, using_quaternion)
+            # collect links
+            self.parse_links()
+            # collect joints
+            self.parse_joints()
+            # remove all fixed joints, renumber links and joints, and build parent and subtree lists
+            self.renumber_linksJoints(using_quaternion, alpha_tie_breaker)
+            # report joint ordering to user
+            self.print_joint_order()
+            # return the robot object
+            return copy.deepcopy(self.robot)
+        except:
+            return None
+
+    def to_float(self, string_arr):
+        try:
+            return [float(value) for value in string_arr]
+        except:
+            return string_arr
+
+    def parse_links(self):
+        lid = 0
+        for raw_link in self.soup.find_all('link', recursive=False):
+            # construct link object
+            curr_link = Link(raw_link["name"],lid)
+            lid = lid + 1
+            # parse origin
+            raw_origin = raw_link.find("origin")
+            if raw_origin == None:
+                print("Link [" + curr_link.name + "] does not have an origin. Assuming this is the fixed world base frame. Else there is an error with your URDF file.")
+                curr_link.set_origin_xyz([0, 0, 0])
+                curr_link.set_origin_rpy([0, 0, 0])
+            else:
+                curr_link.set_origin_xyz(self.to_float(raw_origin["xyz"].split(" ")))
+                curr_link.set_origin_rpy(self.to_float(raw_origin["rpy"].split(" ")))
+            # parse inertial properties
+            raw_inertial = raw_link.find("inertial")
+            if raw_inertial == None:
+                print("Link [" + curr_link.name + "] does not have inertial properties. Assuming this is the fixed world base frame. Else there is an error with your URDF file.")
+                curr_link.set_inertia(0, 0, 0, 0, 0, 0, 0)
+            else:
+                # get mass and inertia values
+                raw_inertia = raw_inertial.find("inertia")
+                curr_link.set_inertia(float(raw_inertial.find("mass")["value"]), \
+                                      float(raw_inertia["ixx"]), \
+                                      float(raw_inertia["ixy"]), \
+                                      float(raw_inertia["ixz"]), \
+                                      float(raw_inertia["iyy"]), \
+                                      float(raw_inertia["iyz"]), \
+                                      float(raw_inertia["izz"]))
+            # store
+            self.robot.add_link(copy.deepcopy(curr_link))
+
+    def parse_joints(self):
+        jid = 0
+        for raw_joint in self.soup.find_all('joint', recursive=False):
+            # construct joint object
+            curr_joint = Joint(raw_joint["name"], jid, \
+                               raw_joint.find("parent")["link"], \
+                               raw_joint.find("child")["link"])
+            jid += 1
+            # get origin position and rotation
+            curr_joint.set_origin_xyz(self.to_float(raw_joint.find("origin")["xyz"].split(" ")))
+            curr_joint.set_origin_rpy(self.to_float(raw_joint.find("origin")["rpy"].split(" ")))
+            # set joint type and axis of motion for joints if applicable
+            raw_axis = raw_joint.find("axis")
+            if raw_axis is None:
+                curr_joint.set_type(raw_joint["type"])
+            else:
+                curr_joint.set_type(raw_joint["type"],self.to_float(raw_axis["xyz"].split(" ")))
+            raw_dynamics = raw_joint.find("dynamics")
+            if raw_dynamics is None:
+                curr_joint.set_damping(0)
+            else:
+                curr_joint.set_damping(float(raw_dynamics["damping"]))
+
+            # parse limits (upper/lower)
+            raw_limit = raw_joint.find("limit")
+            jtype = raw_joint["type"]
+
+            lower = upper = None
+
+            if jtype in ("revolute", "prismatic", "continuous"):
+                if raw_limit is not None:
+                    if raw_limit.has_attr("lower"): lower = float(raw_limit["lower"])
+                    if raw_limit.has_attr("upper"): upper = float(raw_limit["upper"])
+
+                if jtype == "continuous":
+                    lower = float("-inf")
+                    upper = float("inf")
+
+                if lower is None: lower = float("-inf")
+                if upper is None: upper = float("inf")
+
+                curr_joint.joint_limits = [lower, upper]
+
+            # store
+            self.robot.add_joint(copy.deepcopy(curr_joint))
+
+    def remove_fixed_joints(self):
+        # start at the leaves and work upwards
+        for curr_joint in reversed(self.robot.get_joints_ordered_by_id()):
+            if curr_joint.jtype == "fixed":
+                # updated fixed transforms and parents of grandchild_joints
+                # to account for the additional fixed transform
+                # X_grandchild = X_granchild * X_child
+                for gcjoint in self.robot.get_joints_by_parent_name(curr_joint.child):
+                    gcjoint.set_parent(curr_joint.get_parent())
+                    gcjoint.set_transformation_matrix(gcjoint.get_transformation_matrix() * curr_joint.get_transformation_matrix())
+                # combine inertia tensors of child and parent at parent
+                # note:  if X is the transform from A to B the I_B = X^T I_A X
+                # note2: inertias in the same from add so I_parent_final = I_parent + X^T I_child X
+                child_link = self.robot.get_link_by_name(curr_joint.child)
+                parent_link = self.robot.get_link_by_name(curr_joint.parent)
+                child_I = child_link.get_spatial_inertia()
+                curr_Xmat = np.reshape(np.array(curr_joint.get_transformation_matrix()).astype(float),(6,6))
+                transformed_Imat = np.matmul(np.matmul(np.transpose(curr_Xmat),child_I),curr_Xmat)
+                parent_link.set_spatial_inertia(parent_link.get_spatial_inertia() + transformed_Imat)
+                
+                # save the fixed joint for later
+                joint_hom = sp.matrix2numpy(curr_joint.get_transformation_matrix_hom()).astype(float)
+                parent_joint = self.robot.get_joints_by_child_name(parent_link.get_name())[0]
+                fj = Fixed_Joint(curr_joint.get_id(), curr_joint.get_name(), parent_joint.get_name(), joint_hom)
+                self.robot.add_fixed_joint(fj)
+                # update any fixed joints that had the current joint as the parent
+                for fixed_joint in self.robot.fixed_joints:
+                    if fixed_joint.parent_name == curr_joint.get_name():
+                        fixed_joint.set_parent(parent_joint.get_name())
+                        new_hom = fixed_joint.get_transformation_matrix_hom() @ joint_hom
+                        fixed_joint.set_transformation_matrix_hom(new_hom)
+
+                # delete the bypassed fixed joint and link
+                self.robot.remove_joint(curr_joint)
+                self.robot.remove_link(child_link)
+        
+        # renumber fixed joints (arbitarily) starting at the highest joint id to avoid conflicts with existing joint ids
+        total_joints = self.robot.get_num_joints()
+        for fj_id in range(len(self.robot.fixed_joints)):
+            self.robot.fixed_joints[fj_id].set_id(total_joints + fj_id)
+
+    def build_subtree_lists(self):
+        subtree_lid_lists = {}
+        # initialize all subtrees to include itself
+        for lid in self.robot.get_links_dict_by_id().keys():
+            subtree_lid_lists[lid] = [lid]
+        # start at the leaves and build up!
+        for curr_joint in self.robot.get_joints_ordered_by_id(reverse=True):
+            parent_lid = self.robot.get_link_by_name(curr_joint.parent).get_id()
+            child_lid = self.robot.get_link_by_name(curr_joint.child).get_id()
+            # add the child's subtree list to the parent (includes the child)
+            if child_lid in subtree_lid_lists.keys():
+                subtree_lid_lists[parent_lid] = list(set(subtree_lid_lists[parent_lid]).union(set(subtree_lid_lists[child_lid])))
+        # save to the links
+        for link in self.robot.links:
+            curr_subtree = subtree_lid_lists[link.get_id()]
+            link.set_subtree(copy.deepcopy(curr_subtree))
+
+    def dfs_order_update(self, parent_name, alpha_tie_breaker = False, next_lid = 0, next_jid = 0):
+        while True:
+            child_joints = self.robot.get_joints_by_parent_name(parent_name)
+            parent_id = self.robot.get_link_by_name(parent_name).lid
+            if alpha_tie_breaker:
+                child_joints.sort(key=lambda joint: joint.name)
+            for curr_joint in child_joints:
+                # save the new id
+                curr_joint.set_id(next_jid)
+                # save the next_lid to the child
+                child = self.robot.get_link_by_name(curr_joint.child)
+                child.set_id(next_lid)
+                child.set_parent_id(parent_id)
+                # recurse
+                next_lid, next_jid = self.dfs_order_update(child.name, alpha_tie_breaker, next_lid + 1, next_jid + 1)
+            # return to parent
+            return next_lid, next_jid
+
+    def bfs_order(self, root_name):
+        # initialize
+        next_lid = 0
+        next_jid = 0
+        next_parent_names = [(root_name,-1)]
+        self.robot.get_link_by_name(root_name).set_bfs_id(-1)
+        self.robot.get_link_by_name(root_name).set_bfs_level(-1)
+        # until there are no parent to parse
+        while len(next_parent_names) != 0:
+            # get the next parent and save its level
+            (parent_name, parent_level) = next_parent_names.pop(0)
+            next_level = parent_level + 1
+            # then until there are no children to parse (of that parent)
+            child_joints = self.robot.get_joints_by_parent_name(parent_name)
+            while len(child_joints) != 0:
+                # update the current link
+                curr_joint = child_joints.pop(0)
+                curr_joint.set_bfs_id(next_jid)
+                curr_joint.set_bfs_level(next_level)
+                # append the child to the list of future possible parents
+                curr_child_name = curr_joint.get_child()
+                next_parent_names.append((curr_child_name,next_level))
+                # update the child
+                curr_link = self.robot.get_link_by_name(curr_child_name)
+                curr_link.set_bfs_id(next_lid)
+                curr_link.set_bfs_level(next_level)
+                # update the global lid, jid
+                next_lid += 1
+                next_jid += 1
+
+    def floating_base_adjust(self, root_link_name, using_quaternion = True):
+        if not self.robot.floating_base:
+            return root_link_name
+        # add world link
+        world = Link("world",-2) # -2 is temporary and unique
+        world.set_origin_xyz([0, 0, 0])
+        world.set_origin_rpy([0, 0, 0])
+        world.set_inertia(0, 0, 0, 0, 0, 0, 0)
+        self.robot.add_link(copy.deepcopy(world))
+        # add floating joint
+        floating_joint = Joint("floating_base_joint", -2, "world", root_link_name, using_quaternion)
+        floating_joint.set_origin_xyz([0,0,0])
+        floating_joint.set_origin_rpy([0,0,0])
+        floating_joint.set_type("floating")
+        floating_joint.set_damping(0)
+        self.robot.add_joint(copy.deepcopy(floating_joint))
+        return "world" # world link is now the root
+
+    def renumber_linksJoints(self, using_quaternion = True, alpha_tie_breaker = False):
+        # find the root link
+        link_names = set([link.name for link in self.robot.get_links_ordered_by_id()])
+        links_that_are_children = set([joint.get_child() for joint in self.robot.get_joints_ordered_by_id()])
+        root_link_name = list(link_names.difference(links_that_are_children))[0]
+        # adjust for floating base if applicable
+        root_link_name = self.floating_base_adjust(root_link_name, using_quaternion)
+        # start renumbering at -1
+        self.robot.get_link_by_name(root_link_name).set_id(-1)
+        # generate the standard dfs ordering of joints/links
+        self.dfs_order_update(root_link_name, alpha_tie_breaker)
+        # remove all fixed joints where applicable (merge links)
+        self.remove_fixed_joints()
+        # recompute the dfs ordering of joints/links to account for removed fixed joints
+        self.dfs_order_update(root_link_name, alpha_tie_breaker)
+        # also save a bfs parse ordering and levels of joints/links and build subtree lists
+        self.bfs_order(root_link_name)
+        self.build_subtree_lists()
+
+    def print_joint_order(self):
+        print("------------------------------------------")
+        print("Assumed Input Joint Configuration Ordering")
+        print("------------------------------------------")
+        for curr_joint in self.robot.get_joints_ordered_by_id():
+            print(curr_joint.get_name())
+        print("------------------------------------------")
+        print("Total of n = " + str(self.robot.get_num_vel()) + " dof")
+        print("Total of n = " + str(self.robot.get_num_joints()) + " joints")
+        print("Total of n = " + str(self.robot.get_num_links()) + (" links (including world frame for floating base)" \
+                                                                   if self.robot.floating_base else " links"))
+        print("------------------------------------------")
+        print("Fixed Joints Found (if any):")
+        print("------------------------------------------")
+        for fj in self.robot.fixed_joints:
+            print(fj.get_name() + " (id: " + str(fj.get_id()) + ", parent: " + fj.parent_name + ")")
+        print("------------------------------------------")

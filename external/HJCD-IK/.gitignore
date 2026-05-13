@@ -1,0 +1,68 @@
+# ---- Build directories ----
+/build/
+/build-*/
+
+# ---- Visual Studio ----
+*.sln
+*.vcxproj*
+*.user
+*.suo
+*.pdb
+*.idb
+*.ipch
+*.obj
+*.o
+*.lib
+*.dll
+*.exe
+*.exp
+*.log
+
+# VS intermediate/IDE caches
+.vs/
+Debug/
+Release/
+x64/
+[Oo]bj/
+[Bb]in/
+
+# ---- CMake ----
+CMakeCache.txt
+CMakeFiles/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+
+# ---- CUDA ----
+*.cubin
+*.ptx
+*.fatbin
+
+# ---- Python ----
+__pycache__/
+*.pyc
+
+# ---- Generated files ----
+results.yml
+*.csv
+
+# ---- OS / Editor ----
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+
+# VS Code
+.vscode/
+
+# CMake / build
+/build/
+/build-*/
+Debug/
+Release/
+x64/
+
+# Generated output
+hjcd_ik_per_batch.yml

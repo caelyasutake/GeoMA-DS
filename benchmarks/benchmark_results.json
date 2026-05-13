@@ -1,0 +1,72 @@
+{
+  "scenario_1": {
+    "scenario": "1_free_space",
+    "ik": {
+      "n_raw": 5,
+      "n_safe": 5,
+      "diversity_score": 1.1110763555108125
+    },
+    "planning": {
+      "success": true,
+      "time_to_solution": 0.00021800000104121864,
+      "nodes_explored": 10,
+      "collision_checks": 4,
+      "path_length": 0.519911432845741,
+      "iterations": 1
+    },
+    "control": {
+      "n_steps": 300,
+      "passivity_violations": 215,
+      "total_energy_injected": 0.19409421791287437,
+      "tank_energy_final": 1.252378530950792,
+      "tank_energy_min": 0.99800070184075,
+      "v_start": 0.1828269999999999,
+      "v_end": 0.08603806016700406,
+      "converged": true
+    }
+  },
+  "scenario_2": {
+    "scenario": "2_narrow_passage",
+    "planning": {
+      "success": true,
+      "time_to_solution": 0.00012589999823831022,
+      "nodes_explored": 8,
+      "collision_checks": 5,
+      "path_length": 0.6824133106455543,
+      "iterations": 1
+    },
+    "comparison": {
+      "single_ik": {
+        "label": "single_ik",
+        "n_goals": 1,
+        "success_rate": 0.0,
+        "mean_iters": 5000.0,
+        "mean_time_s": 1.3560810999944806
+      },
+      "multi_ik": {
+        "label": "multi_ik",
+        "n_goals": 2,
+        "success_rate": 1.0,
+        "mean_iters": 1.0,
+        "mean_time_s": 0.00017653999966569245
+      }
+    }
+  },
+  "scenario_3": {
+    "scenario": "3_contact_task",
+    "control": {
+      "n_steps": 500,
+      "passivity_violations": 499,
+      "total_energy_injected": 2.142182210008288,
+      "tank_energy_final": 2.0,
+      "tank_energy_min": 1.0,
+      "v_start": 0.8028270000000001,
+      "v_end": 0.07491935868633987,
+      "converged": true
+    },
+    "contact": {
+      "n_contacts": 95,
+      "force_error_sq": 28890.980393697846
+    }
+  }
+}

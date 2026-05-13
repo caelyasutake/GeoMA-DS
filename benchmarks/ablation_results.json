@@ -1,0 +1,72 @@
+{
+  "passivity_filter": [
+    {
+      "condition": "no_filter",
+      "nominal_violations": 299.3,
+      "unhandled_violations": 299.3,
+      "unhandled_rate": 0.9976666666666667,
+      "clipped_steps": 0.0,
+      "mean_power_reduction": 0.0
+    },
+    {
+      "condition": "with_filter",
+      "nominal_violations": 295.8,
+      "unhandled_violations": 0.0,
+      "unhandled_rate": 0.0,
+      "clipped_steps": 295.8,
+      "mean_power_reduction": 6.397215191492158e-05
+    }
+  ],
+  "contact_force": [
+    {
+      "condition": "unfiltered",
+      "mean_tau_norm": 5.69916547598448,
+      "mean_power_nom": 0.0681307785391328,
+      "mean_power_filtered": 0.0681307785391328,
+      "clipped_rate": 0.0,
+      "power_reduction": 0.0
+    },
+    {
+      "condition": "filtered",
+      "mean_tau_norm": 5.22383833889307,
+      "mean_power_nom": 0.1548219653639668,
+      "mean_power_filtered": 0.0018672775616588632,
+      "clipped_rate": 0.985,
+      "power_reduction": 0.15295468780230795
+    }
+  ],
+  "tank_vs_tank_filter": [
+    {
+      "condition": "tank_only",
+      "unhandled_violations": 277.6,
+      "unhandled_rate": 0.9253333333333335,
+      "clipped_steps": 0.0,
+      "tank_energy_min": 0.06792357025980253,
+      "converged_rate": 0.9
+    },
+    {
+      "condition": "tank_and_filter",
+      "unhandled_violations": 0.0,
+      "unhandled_rate": 0.0,
+      "clipped_steps": 271.8,
+      "tank_energy_min": 0.05850812676744084,
+      "converged_rate": 1.0
+    }
+  ],
+  "ik_filter": [
+    {
+      "condition": "old_filter",
+      "n_safe": 10.0,
+      "mean_approach_energy": 4.273565082909109,
+      "mean_contact_energy": 0.0,
+      "first_goal_rank": 5.55
+    },
+    {
+      "condition": "energy_aware_filter",
+      "n_safe": 10.0,
+      "mean_approach_energy": 2.3589494628833,
+      "mean_contact_energy": 0.0,
+      "first_goal_rank": 0.0
+    }
+  ]
+}
